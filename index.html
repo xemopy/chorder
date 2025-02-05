@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Chord Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+        input, button, select {
+            margin: 10px;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Random Chord Generator</h1>
+    <label for="scale">Enter a Scale Root:</label>
+    <input type="text" id="scale" placeholder="C, D, E...">
+    <label for="mode">Mode:</label>
+    <select id="mode">
+        <option value="major">Major</option>
+        <option value="minor">Minor</option>
+    </select>
+    <button onclick="generateChord()">Generate Chord</button>
+    <h2 id="chordOutput"></h2>
+    <h3 id="chordNotes"></h3>
+    <button onclick="playChord()">Play Chord</button>
+    
+    <script>
+        function generateChord() {
+            const scales = {
+                major: ["M", "m", "m", "M", "M", "m", "dim"],
+                minor: ["m", "dim", "M", "m", "m", "M", "M"]
+            };
+            const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+            
+            let root = document.getElementById("scale").value;
+            let mode = document.getElementById("mode").value;
+            let rootIndex = notes.indexOf(root);
+            
+            if (rootIndex === -1) {
+                document.getElementById("chordOutput").innerText = "Invalid scale root!";
+                document.getElementById("chordNotes").innerText = "";
+                return;
+            }
+            
+            let scalePattern = mode === "major" ? [0, 2, 4, 5, 7, 9, 11] : [0, 2, 3, 5, 7, 8, 10];
+            let scaleNotes = scalePattern.map(interval => notes[(rootIndex + interval) % 12]);
+            
+            let randomIndex = Math.floor(Math.random() * scaleNotes.length);
+            let chordType = scales[mode][randomIndex];
+            let chordRoot = scaleNotes[randomIndex];
+            
+            let chordIntervals = chordType === "M" ? [0, 4, 7] : chordType === "m" ? [0, 3, 7] : [0, 3, 6];
+            let chordNotes = chordIntervals.map(interval => notes[(notes.indexOf(chordRoot) + interval) % 12]);
+            
+            document.getElementById("chordOutput").innerText = "Random Chord: " + chordRoot + chordType;
+            document.getElementById("chordNotes").innerText = "Notes: " + chordNotes.join(", ");
+            
+            window.currentChord = chordNotes;
+        }
+
+        function playChord() {
+            if (!window.currentChord) return;
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const notesFrequencies = {
+                "C": 261.63, "C#": 277.18, "D": 293.66, "D#": 311.13, "E": 329.63, "F": 349.23, "F#": 369.99,
+                "G": 392.00, "G#": 415.30, "A": 440.00, "A#": 466.16, "B": 493.88
+            };
+            
+            window.currentChord.forEach((note, i) => {
+                let osc = audioCtx.createOscillator();
+                let gainNode = audioCtx.createGain();
+                osc.frequency.value = notesFrequencies[note];
+                osc.type = "sine";
+                gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                osc.start(audioCtx.currentTime + i * 0.05);
+                osc.stop(audioCtx.currentTime + 1.5);
+            });
+        }
+    </script>
+</body>
+</html>
